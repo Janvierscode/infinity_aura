@@ -224,7 +224,7 @@ form.addEventListener("submit", (event) => {
   const formData = new FormData(form);
   formData.set("_subject", `New Infinity Aura enquiry from ${fields.name.input.value.trim()}`);
 
-  fetch("https://formsubmit.co/ajax/iyakaremyejanvier@gmail.com", {
+    fetch("https://formsubmit.co/ajax/info@infinityaura.tech", {
     method: "POST",
     headers: {
       Accept: "application/json"
@@ -248,7 +248,7 @@ form.addEventListener("submit", (event) => {
     .catch(() => {
       formStatus.classList.add("error");
       formStatus.textContent =
-        "We couldn’t send your message right now. Please email iyakaremyejanvier@gmail.com directly.";
+            "We couldn’t send your message right now. Please email info@infinityaura.tech directly.";
     })
     .finally(() => {
       submitButton.disabled = false;
