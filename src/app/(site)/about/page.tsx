@@ -1,0 +1,11 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
+
+export const metadata: Metadata = { title: "About Us", description: "Meet Infinity Aura Technologies, a forward-thinking Zimbabwean technology company building digital systems for African progress." };
+
+export default function AboutPage() {
+  return (
+    <><section className="page-hero"><div className="container"><span className="eyebrow">Who we are</span><h1>Ideas deserve engineering <span className="gradient-text">with intention.</span></h1><p>Infinity Aura Technologies exists to help organizations turn ambitious ideas into digital products that are useful, resilient, and ready to grow.</p></div></section><section className="section"><div className="container about-story"><div className="section-heading"><span className="eyebrow">Our perspective</span><h2>Technology is valuable when it makes people and organizations more capable.</h2></div><div className="prose-panel"><p>We combine creativity, technology, and strategic thinking to build reliable digital products that improve efficiency and unlock opportunity. From our base in Harare, we work with schools, businesses, institutions, and ambitious teams across the region.</p><p>Our work begins with understanding. We learn the operating reality, define the outcome, and choose technology that can be maintained long after launch.</p><div className="values-grid">{["Innovation with purpose", "Excellence in delivery", "Integrity in partnership", "Empowerment through ownership"].map((value) => <span key={value}><Check size={17} />{value}</span>)}</div></div></div></section><section className="section section-muted"><div className="container mission-grid"><article><span>Mission</span><h2>Transform ideas into technology that empowers organizations.</h2></article><article><span>Vision</span><h2>Become a leading African technology company recognized for innovation, excellence, and impact.</h2></article></div></section><section className="section"><div className="container cta-panel"><div><span className="eyebrow">Work with us</span><h2>Bring us the challenge. We&apos;ll help shape the path forward.</h2></div><Link className="button button-primary" href="/contact">Start a conversation <ArrowRight size={18} /></Link></div></section></>
+  );
+}
