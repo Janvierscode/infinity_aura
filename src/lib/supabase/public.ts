@@ -14,5 +14,12 @@ export function createPublicClient() {
       detectSessionInUrl: false,
       persistSession: false,
     },
+    global: {
+      fetch: (input, init) => {
+        const timeout = AbortSignal.timeout(6000);
+        const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+        return fetch(input, { ...init, signal });
+      },
+    },
   });
 }

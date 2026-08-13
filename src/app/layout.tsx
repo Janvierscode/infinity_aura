@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+const geist = localFont({ src: "../../node_modules/next/dist/next-devtools/server/font/geist-latin.woff2", variable: "--font-geist", display: "swap", weight: "100 900" });
+const geistMono = localFont({ src: "../../node_modules/next/dist/next-devtools/server/font/geist-mono-latin.woff2", variable: "--font-geist-mono", display: "swap", weight: "100 900" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
     template: "%s | Infinity Aura Technologies",
   },
   description:
-    "Infinity Aura Technologies builds reliable software, web platforms, mobile applications, AI solutions, and digital systems for ambitious African organizations.",
+    "Discover practical business ideas, evaluate what they take to launch, and learn from community insight on Infinity Aura Technologies.",
   applicationName: "Infinity Aura Technologies",
   keywords: [
     "software development Zimbabwe",
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
     "mobile applications",
     "AI solutions",
     "business automation",
+    "business ideas Africa",
+    "small business opportunities Zimbabwe",
   ],
   icons: { icon: "/brand/favicon.png" },
   openGraph: {
@@ -27,21 +30,23 @@ export const metadata: Metadata = {
     locale: "en_ZW",
     siteName: "Infinity Aura Technologies",
     title: "Infinity Aura Technologies | Innovate. Build. Empower.",
-    description: "Building innovative digital solutions for tomorrow.",
+    description: "Practical business ideas, community insight, and technology for people ready to build.",
     images: [{ url: "/brand/infinity-aura-logo.jpg", width: 1536, height: 1024 }],
   },
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: "#080d17",
+  colorScheme: "light dark",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const themeScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)},p=localStorage.getItem(k);if(p!=="light"&&p!=="dark"&&p!=="system")p="system";var a=location.pathname.startsWith("/admin"),d=!a&&(p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches)),t=d?"dark":"light",r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=t;r.style.colorScheme=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d?"#080d17":"#ffffff"}catch(e){}})()`;
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} data-scroll-behavior="smooth">
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} data-theme="light" data-theme-preference="system" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <head><script id="theme-init" dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>{children}</body>
     </html>
   );

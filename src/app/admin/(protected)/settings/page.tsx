@@ -16,8 +16,8 @@ export default async function AdminSettingsPage() {
           <span>Global configuration</span>
           <h1>Company settings</h1>
           <p>
-            These values control business identity, contact details, enquiry
-            delivery, and default search metadata.
+            These values control business identity, contact details, and
+            default search metadata.
           </p>
         </div>
       </header>
@@ -62,7 +62,7 @@ export default async function AdminSettingsPage() {
               />
             </label>
             <label>
-              <span>Enquiry notification email</span>
+              <span>Lead email</span>
               <input
                 name="enquiryEmail"
                 type="email"
@@ -135,7 +135,7 @@ export default async function AdminSettingsPage() {
         <aside className="editor-panel editor-publish">
           <div className="editor-panel-title">
             <h2>Save changes</h2>
-            <p>Updates are recorded in the admin activity log.</p>
+            <p>Changes apply across the public website.</p>
           </div>
           <div className="editor-fields">
             <button className="button button-primary">Update settings</button>

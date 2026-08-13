@@ -20,7 +20,7 @@ export function ContactForm({ subject }: { subject?: string }) {
   }, [state.status]);
 
   return (
-    <form ref={formRef} className="contact-form glass-card" action={action} noValidate>
+    <form ref={formRef} className="contact-form" action={action} noValidate>
       <input type="hidden" name="sourcePath" value="/contact" />
       <div className="honeypot" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <div className="form-title"><span>Start a conversation</span><i /></div>
@@ -34,7 +34,7 @@ export function ContactForm({ subject }: { subject?: string }) {
       </div>
       <button className="button button-primary form-button" type="submit" disabled={pending}>{pending ? <><LoaderCircle className="spin" size={18} /> Sending securely...</> : <>Send message <ArrowRight size={18} /></>}</button>
       <div className={`form-status ${state.status}`} role="status" aria-live="polite">{state.message}{state.reference && <small> Reference: {state.reference}</small>}</div>
-      <p className="form-note">Your enquiry is stored securely and delivered automatically to Infinity Aura Technologies. No email application will open.</p>
+      <p className="form-note">Your enquiry is saved securely in our private lead system. No email application will open.</p>
     </form>
   );
 }

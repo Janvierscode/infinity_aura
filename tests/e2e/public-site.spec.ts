@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+const themeKey = "infinity-aura-theme";
+
+async function openMobileNavigation(page: import("@playwright/test").Page, isMobile: boolean) {
+  if (isMobile) await page.getByRole("button", { name: "Open navigation menu" }).click();
+}
+
 test("public homepage renders without horizontal overflow", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (message) => {
@@ -8,7 +14,7 @@ test("public homepage renders without horizontal overflow", async ({ page }) => 
 
   await page.goto("/");
   await expect(page).toHaveTitle(/Infinity Aura Technologies/);
-  await expect(page.getByRole("heading", { name: /Building innovative digital solutions/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Find a business idea worth building/i })).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -17,6 +23,112 @@ test("public homepage renders without horizontal overflow", async ({ page }) => 
 
   expect(dimensions.scrollWidth).toBe(dimensions.clientWidth);
   expect(consoleErrors).toEqual([]);
+});
+
+test("homepage contains the five focused public sections", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("main > section")).toHaveCount(5);
+  await expect(page.getByRole("heading", { name: /Start with an opportunity you can understand/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /When an idea needs the right technology/i })).toBeVisible();
+});
+
+test("theme chooser persists explicit light and dark preferences", async ({ page, isMobile }) => {
+  await page.goto("/");
+  await openMobileNavigation(page, isMobile);
+  const trigger = page.getByRole("button", { name: "Theme: system" });
+  await trigger.click();
+  await page.getByRole("menuitemradio", { name: "Dark" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme-preference", "dark");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await openMobileNavigation(page, isMobile);
+  await expect(page.getByRole("button", { name: "Theme: dark" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Theme: dark" }).click();
+  await page.getByRole("menuitemradio", { name: "Light" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.evaluate((key) => localStorage.getItem(key), themeKey)).resolves.toBe("light");
+});
+
+test("system theme follows live operating-system changes", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript((key) => localStorage.setItem(key, "system"), themeKey);
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme-preference", "system");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
+test("saved dark theme is applied before hydration without console errors", async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
+  await page.addInitScript((key) => localStorage.setItem(key, "dark"), themeKey);
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".futuristic-hero")).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
+test("light and dark themes render the same branded hero content", async ({ page }) => {
+  for (const theme of ["light", "dark"] as const) {
+    await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [themeKey, theme]);
+    await page.goto("/");
+    await expect(page.locator(".futuristic-hero")).toBeVisible();
+    await expect(page.locator(".hero-grid")).toBeVisible();
+    await expect(page.locator(".capability-row")).toContainText("Discover");
+    await expect(page.locator(".capability-row")).toContainText("Discuss");
+    await expect(page.locator(".code-window")).toContainText("build.ts");
+  }
+});
+
+test("public themes have no horizontal overflow at target widths", async ({ page }) => {
+  for (const theme of ["light", "dark"] as const) {
+    await page.goto("/");
+    await page.evaluate(([key, value]) => localStorage.setItem(key, value), [themeKey, theme]);
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const dimensions = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+      expect(dimensions.scroll, `${theme} theme overflowed at ${width}px`).toBe(dimensions.client);
+    }
+  }
+});
+
+test("business idea filtering handles an invalid category", async ({ page }) => {
+  await page.goto("/ideas?category=does-not-exist");
+  await expect(page.getByRole("heading", { name: "Category not found" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View all ideas" })).toBeVisible();
+});
+
+test("retired blog routes permanently redirect to business ideas", async ({ request }) => {
+  const index = await request.get("/blog", { maxRedirects: 0 });
+  expect(index.status()).toBe(308);
+  expect(index.headers().location).toBe("/ideas");
+  const detail = await request.get("/blog/old-article", { maxRedirects: 0 });
+  expect(detail.status()).toBe(308);
+  expect(detail.headers().location).toBe("/ideas/old-article");
+});
+
+test("member account screens support Google and email sign-in", async ({ page }) => {
+  await page.goto("/account/login");
+  await expect(page.getByRole("heading", { name: /Sign in to join the conversation/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  await page.getByRole("link", { name: "Create an account" }).click();
+  await expect(page.getByRole("heading", { name: "Create your account." })).toBeVisible();
+  await expect(page.getByLabel("Display name")).toBeVisible();
+});
+
+test("retired solution routes permanently redirect to services", async ({ request }) => {
+  for (const path of ["/solutions", "/solutions/old-product"]) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe("/services");
+  }
 });
 
 test("mobile navigation opens, remains accessible, and navigates", async ({ page, isMobile }) => {
@@ -42,7 +154,9 @@ test("contact form validates in place without opening an email client", async ({
 });
 
 test("unauthenticated admin requests are redirected to login", async ({ page }) => {
+  await page.addInitScript((key) => localStorage.setItem(key, "dark"), themeKey);
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/admin\/login/);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByRole("heading", { name: /Connect Supabase|Administrator access/ })).toBeVisible();
 });
