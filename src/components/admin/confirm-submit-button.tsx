@@ -6,6 +6,7 @@ type ConfirmSubmitButtonProps = {
   children: ReactNode;
   className?: string;
   formAction?: (formData: FormData) => void | Promise<void>;
+  confirmation?: string;
   label: string;
   name?: string;
   value?: string;
@@ -15,6 +16,7 @@ export function ConfirmSubmitButton({
   children,
   className,
   formAction,
+  confirmation = "Delete this item? This action cannot be undone.",
   label,
   name,
   value,
@@ -27,7 +29,7 @@ export function ConfirmSubmitButton({
       value={value}
       aria-label={label}
       onClick={(event) => {
-        if (!window.confirm("Delete this item? This action cannot be undone.")) {
+        if (!window.confirm(confirmation)) {
           event.preventDefault();
         }
       }}

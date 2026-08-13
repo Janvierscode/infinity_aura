@@ -17,10 +17,4 @@ export function getSupabasePublicEnv() {
   return { publishableKey, url: publicUrl };
 }
 
-export function getSupabaseSecretKey() {
-  const key = process.env.SUPABASE_SECRET_KEY;
-  if (!key) throw new Error("SUPABASE_SECRET_KEY is not configured.");
-  return key;
-}
-
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

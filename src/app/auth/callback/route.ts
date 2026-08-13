@@ -13,5 +13,6 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(new URL(nextPath, request.url));
   }
 
-  return NextResponse.redirect(new URL("/admin/login?error=callback", request.url));
+  const failurePath = nextPath.startsWith("/admin") ? "/admin/login?error=callback" : `/account/login?error=callback&next=${encodeURIComponent(nextPath)}`;
+  return NextResponse.redirect(new URL(failurePath, request.url));
 }
