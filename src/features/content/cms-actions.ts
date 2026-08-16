@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import sharp from "sharp";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { CACHE_TAGS } from "@/lib/cache-tags";
@@ -69,13 +70,25 @@ export async function uploadMedia(formData: FormData) {
   if (!(file instanceof File) || file.size === 0) throw new Error("Choose an image to upload.");
   const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
   if (!allowed.has(file.type) || file.size > 10 * 1024 * 1024) throw new Error("Upload a JPG, PNG, WebP, or AVIF image no larger than 10 MB.");
+
+  let processed: { data: Buffer; width: number; height: number };
+  try {
+    const { data, info } = await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: 25_000_000 })
+      .rotate()
+      .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer({ resolveWithObject: true });
+    processed = { data, width: info.width, height: info.height };
+  } catch {
+    throw new Error("This image could not be processed. Try exporting it again as JPG, PNG, WebP, or AVIF.");
+  }
+
   const { supabase, userId } = await requireAdmin();
-  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
-  const objectPath = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extension}`;
-  const upload = await supabase.storage.from("public-media").upload(objectPath, file, { contentType: file.type, upsert: false });
+  const objectPath = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.webp`;
+  const upload = await supabase.storage.from("public-media").upload(objectPath, processed.data, { cacheControl: "31536000", contentType: "image/webp", upsert: false });
   if (upload.error) throw new Error(upload.error.message);
   const publicUrl = supabase.storage.from("public-media").getPublicUrl(objectPath).data.publicUrl;
-  const created = await supabase.from("media_assets").insert({ bucket: "public-media", object_path: objectPath, public_url: publicUrl, original_filename: file.name, mime_type: file.type, size_bytes: file.size, alt_text: altText || null, caption: caption || null, uploaded_by: userId }).select("id").single();
+  const created = await supabase.from("media_assets").insert({ bucket: "public-media", object_path: objectPath, public_url: publicUrl, original_filename: file.name, mime_type: "image/webp", size_bytes: processed.data.byteLength, width: processed.width, height: processed.height, alt_text: altText || null, caption: caption || null, uploaded_by: userId }).select("id").single();
   if (created.error) { await supabase.storage.from("public-media").remove([objectPath]); throw new Error(created.error.message); }
   revalidatePath("/admin/media");
 }

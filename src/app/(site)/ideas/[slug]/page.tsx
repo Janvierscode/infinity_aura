@@ -36,7 +36,7 @@ export default async function IdeaPage({ params }: { params: Promise<{ slug: str
     <article className="idea-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <header className="idea-header"><div className="container idea-header-inner"><Link className="idea-back" href="/ideas"><ArrowLeft size={16} /> All business ideas</Link><div className="idea-meta"><span>{idea.category?.name ?? "Business idea"}</span><span>{published}</span></div><h1>{idea.title}</h1><p>{idea.summary}</p><div className="idea-facts"><span><Coins size={17} /> {idea.investment} investment</span>{idea.launch_time ? <span><Clock3 size={17} /> {idea.launch_time} to launch</span> : null}</div></div></header>
-      {idea.cover ? <div className="container idea-cover"><Image src={idea.cover.public_url} alt={idea.cover.alt_text ?? idea.title} fill priority sizes="(max-width: 1000px) 100vw, 1000px" /></div> : null}
+      {idea.cover ? <div className="container idea-cover"><Image src={idea.cover.public_url} alt={idea.cover.alt_text ?? idea.title} fill priority unoptimized={idea.cover.public_url.includes(".supabase.co/storage/")} sizes="(max-width: 1000px) 100vw, 1000px" /></div> : null}
       <section className="container idea-body public-idea-preview"><MarkdownContent markdown={idea.preview_markdown} /></section>
       <IdeaDiscussion idea={idea} />
     </article>
