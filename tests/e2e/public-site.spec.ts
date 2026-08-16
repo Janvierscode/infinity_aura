@@ -113,14 +113,32 @@ test("retired blog routes permanently redirect to business ideas", async ({ requ
   expect(detail.headers().location).toBe("/ideas/old-article");
 });
 
-test("member account screens support Google and email sign-in", async ({ page }) => {
+test("member account screens support email sign-in and recovery", async ({ page }) => {
   await page.goto("/account/login");
-  await expect(page.getByRole("heading", { name: /Sign in to join the conversation/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Sign in to continue/i })).toBeVisible();
   await expect(page.getByLabel("Email address")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Forgot your password?" })).toBeVisible();
   await page.getByRole("link", { name: "Create an account" }).click();
-  await expect(page.getByRole("heading", { name: "Create your account." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create your free account." })).toBeVisible();
   await expect(page.getByLabel("Display name")).toBeVisible();
+});
+
+test("published idea exposes a preview and gates the complete guide", async ({ page }) => {
+  const response = await page.goto("/ideas/cleanflow-lite");
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "CleanFlow Lite" })).toBeVisible();
+  await expect(page.getByText("Sign in to continue reading.")).toBeVisible();
+  await expect(page.getByText("Opportunity score")).toHaveCount(0);
+  await page.getByRole("button", { name: "Continue reading" }).click();
+  const dialog = page.getByRole("dialog", { name: "Continue with a free account." });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", /next=%2Fideas%2Fcleanflow-lite%23member-content/);
+});
+
+test("anonymous idea responses never contain protected guide content", async ({ request }) => {
+  const response = await request.get("/ideas/cleanflow-lite");
+  expect(response.status()).toBe(200);
+  expect(await response.text()).not.toContain("Opportunity score");
 });
 
 test("retired solution routes permanently redirect to services", async ({ request }) => {

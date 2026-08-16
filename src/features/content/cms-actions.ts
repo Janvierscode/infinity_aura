@@ -5,20 +5,23 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { ideaPreviewSchema } from "@/lib/validation/idea";
 
 const optionalUuid = z.string().uuid().optional().or(z.literal(""));
 const slug = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
-export async function saveBusinessIdea(formData: FormData) {
-  const parsed = z.object({ id: optionalUuid, title: z.string().trim().min(2).max(160), slug, summary: z.string().trim().min(20).max(320), bodyMarkdown: z.string().trim().min(20).max(100000), categoryId: z.string().uuid(), coverMediaId: optionalUuid, investment: z.enum(["low", "moderate", "high"]), launchTime: z.string().trim().max(80), featured: z.string().optional(), metaTitle: z.string().trim().max(160), metaDescription: z.string().trim().max(320), intent: z.enum(["draft", "published", "archived"]) }).safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) throw new Error("Review the business idea fields and try again.");
+export type CmsActionState = { status?: "error"; message?: string };
+
+export async function saveBusinessIdea(_: CmsActionState, formData: FormData): Promise<CmsActionState> {
+  const parsed = z.object({ id: optionalUuid, title: z.string().trim().min(2).max(160), slug, summary: z.string().trim().min(20).max(320), previewMarkdown: ideaPreviewSchema, bodyMarkdown: z.string().trim().min(20).max(100000), categoryId: z.string().uuid(), coverMediaId: optionalUuid, investment: z.enum(["low", "moderate", "high"]), launchTime: z.string().trim().max(80), featured: z.string().optional(), metaTitle: z.string().trim().max(160), metaDescription: z.string().trim().max(320), intent: z.enum(["draft", "published", "archived"]) }).safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Review the business idea fields and try again." };
   const { supabase, userId } = await requireAdmin();
   const existing = parsed.data.id ? await supabase.from("business_ideas").select("published_at").eq("id", parsed.data.id).maybeSingle() : null;
-  const payload = { title: parsed.data.title, slug: parsed.data.slug, summary: parsed.data.summary, body_markdown: parsed.data.bodyMarkdown, category_id: parsed.data.categoryId, cover_media_id: parsed.data.coverMediaId || null, investment: parsed.data.investment, launch_time: parsed.data.launchTime || null, is_featured: parsed.data.featured === "on", meta_title: parsed.data.metaTitle || null, meta_description: parsed.data.metaDescription || null, status: parsed.data.intent, published_at: parsed.data.intent === "published" ? existing?.data?.published_at ?? new Date().toISOString() : null, updated_by: userId } as const;
+  const payload = { title: parsed.data.title, slug: parsed.data.slug, summary: parsed.data.summary, preview_markdown: parsed.data.previewMarkdown, body_markdown: parsed.data.bodyMarkdown, category_id: parsed.data.categoryId, cover_media_id: parsed.data.coverMediaId || null, investment: parsed.data.investment, launch_time: parsed.data.launchTime || null, is_featured: parsed.data.featured === "on", meta_title: parsed.data.metaTitle || null, meta_description: parsed.data.metaDescription || null, status: parsed.data.intent, published_at: parsed.data.intent === "published" ? existing?.data?.published_at ?? new Date().toISOString() : null, updated_by: userId } as const;
   const result = parsed.data.id ? await supabase.from("business_ideas").update(payload).eq("id", parsed.data.id).select("id").single() : await supabase.from("business_ideas").insert(payload).select("id").single();
-  if (result.error || !result.data) throw new Error(result.error?.code === "23505" ? "That business idea URL slug is already in use." : result.error?.message ?? "Unable to save the business idea.");
+  if (result.error || !result.data) return { status: "error", message: result.error?.code === "23505" ? "That business idea URL slug is already in use." : result.error?.message ?? "Unable to save the business idea." };
   updateTag(CACHE_TAGS.ideas);
-  revalidatePath("/"); revalidatePath("/ideas"); revalidatePath(`/ideas/${parsed.data.slug}`); revalidatePath("/admin/ideas");
+  revalidatePath("/"); revalidatePath("/ideas"); revalidatePath(`/ideas/${parsed.data.slug}`); revalidatePath("/admin/ideas"); revalidatePath("/sitemap.xml");
   redirect(`/admin/ideas/${result.data.id}`);
 }
 
@@ -31,7 +34,7 @@ export async function deleteBusinessIdea(formData: FormData) {
   if (error) throw new Error(error.message);
   updateTag(CACHE_TAGS.ideas);
   revalidatePath("/");
-  revalidatePath("/ideas"); revalidatePath(`/ideas/${existing.data.slug}`); revalidatePath("/admin/ideas");
+  revalidatePath("/ideas"); revalidatePath(`/ideas/${existing.data.slug}`); revalidatePath("/admin/ideas"); revalidatePath("/sitemap.xml");
   redirect("/admin/ideas");
 }
 

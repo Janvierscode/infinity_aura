@@ -60,6 +60,7 @@ export type BusinessIdeaRow = AuditFields & {
   title: string;
   slug: string;
   summary: string;
+  preview_markdown: string;
   body_markdown: string;
   category_id: string;
   cover_media_id: string | null;
@@ -76,7 +77,12 @@ export type BusinessIdeaRow = AuditFields & {
   published_at: string | null;
 };
 
-export type BusinessIdeaWithRelations = BusinessIdeaRow & {
+export type PublicBusinessIdea = Omit<
+  BusinessIdeaRow,
+  "body_markdown" | "updated_by"
+>;
+
+export type BusinessIdeaWithRelations = PublicBusinessIdea & {
   category: Pick<IdeaCategoryRow, "id" | "name" | "slug"> | null;
   cover: Pick<MediaAssetRow, "id" | "public_url" | "alt_text" | "width" | "height"> | null;
 };
@@ -104,6 +110,19 @@ export type IdeaCommentRow = {
 
 export type IdeaCommentWithProfile = IdeaCommentRow & {
   profile: Pick<ProfileRow, "id" | "display_name" | "avatar_url"> | null;
+};
+
+export type MemberIdeaContent = {
+  body_markdown: string;
+  comments: IdeaCommentWithProfile[];
+  ideaVote: -1 | 1 | null;
+  commentVotes: Record<string, -1 | 1>;
+};
+
+export type MemberActivitySummary = {
+  comments: number;
+  ideaVotes: number;
+  commentVotes: number;
 };
 
 export type IdeaVoteRow = { idea_id: string; user_id: string; value: -1 | 1; created_at: string; updated_at: string };

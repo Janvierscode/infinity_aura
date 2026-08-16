@@ -1,12 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const port = process.env.PLAYWRIGHT_PORT ?? "3000";
+const baseURL = `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: process.env.CI ? 2 : 2,
+  timeout: 60_000,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL,
     trace: "on-first-retry",
   },
   projects: [
@@ -16,8 +21,8 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_EXTERNAL_SERVER
     ? undefined
     : {
-        command: "npm run build && npm run start",
-        url: "http://127.0.0.1:3000",
+        command: `npm run build && npm run start -- -p ${port}`,
+        url: baseURL,
         reuseExistingServer: false,
         timeout: 120_000,
       },

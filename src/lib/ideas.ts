@@ -17,3 +17,11 @@ export function isSafeMarkdownUrl(value: string | undefined, image = false) {
     return false;
   }
 }
+
+export function safeRelativePath(value: string | undefined, fallback = "/ideas") {
+  return value?.startsWith("/") && !value.startsWith("//") ? value : fallback;
+}
+
+export function nextVote(existing: -1 | 1 | null, requested: -1 | 1) {
+  return existing === requested ? null : requested;
+}

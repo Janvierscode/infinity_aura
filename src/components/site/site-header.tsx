@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ThemeSwitcher } from "@/components/site/theme-switcher";
-import { signOutMember } from "@/features/community/auth-actions";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
@@ -18,11 +17,11 @@ const navigation = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   useEffect(() => { document.body.classList.toggle("menu-open", open); return () => document.body.classList.remove("menu-open"); }, [open]);
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
+    supabase.auth.getClaims().then(({ data }) => setSignedIn(Boolean(data?.claims?.sub)));
     const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)));
     return () => data.subscription.unsubscribe();
   }, []);
@@ -37,7 +36,7 @@ export function SiteHeader() {
         <nav id="site-navigation" className={open ? "site-nav is-open" : "site-nav"} aria-label="Primary navigation">
           {navigation.map((item) => <Link key={item.href} href={item.href} prefetch onClick={() => setOpen(false)}>{item.label}</Link>)}
           <ThemeSwitcher />
-          {signedIn ? <form action={signOutMember}><button className="member-nav-button">Sign out</button></form> : <Link className="member-nav-button" href="/account/login" onClick={() => setOpen(false)}>Sign in</Link>}
+          <span className="member-nav-slot">{signedIn === null ? <span className="member-nav-placeholder" aria-hidden="true" /> : signedIn ? <Link className="member-nav-button" href="/account" onClick={() => setOpen(false)}>Account</Link> : <Link className="member-nav-button" href="/account/login" onClick={() => setOpen(false)}>Sign in</Link>}</span>
           <Link className="button button-primary nav-cta" href="/ideas" onClick={() => setOpen(false)}>Explore ideas</Link>
         </nav>
       </div>

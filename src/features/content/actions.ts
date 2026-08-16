@@ -17,7 +17,7 @@ export async function saveService(formData: FormData) {
   const result = parsed.data.id ? await supabase.from("services").update(payload).eq("id", parsed.data.id).select("id").single() : await supabase.from("services").insert(payload).select("id").single();
   if (result.error || !result.data) throw new Error(result.error?.code === "23505" ? "That service URL slug is already in use." : result.error?.message ?? "Unable to save the service.");
   updateTag(CACHE_TAGS.services);
-  revalidatePath("/"); revalidatePath("/services"); revalidatePath(`/services/${parsed.data.slug}`); revalidatePath("/admin/services");
+  revalidatePath("/"); revalidatePath("/services"); revalidatePath(`/services/${parsed.data.slug}`); revalidatePath("/admin/services"); revalidatePath("/sitemap.xml");
   redirect(`/admin/services/${result.data.id}`);
 }
 
@@ -33,6 +33,7 @@ export async function deleteService(formData: FormData) {
   revalidatePath("/services");
   revalidatePath(`/services/${existing.data.slug}`);
   revalidatePath("/admin/services");
+  revalidatePath("/sitemap.xml");
   redirect("/admin/services");
 }
 

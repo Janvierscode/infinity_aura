@@ -17,4 +17,11 @@ export function getSupabasePublicEnv() {
   return { publishableKey, url: publicUrl };
 }
 
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+
+if (process.env.VERCEL_ENV === "production" && (!configuredSiteUrl || configuredSiteUrl.includes("localhost"))) {
+  throw new Error("NEXT_PUBLIC_SITE_URL must be configured with the canonical production URL.");
+}
+
+export const siteUrl = configuredSiteUrl ?? "http://localhost:3000";
+export const googleAuthEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";

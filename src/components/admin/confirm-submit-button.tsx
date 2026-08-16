@@ -21,12 +21,14 @@ export function ConfirmSubmitButton({
   name,
   value,
 }: ConfirmSubmitButtonProps) {
+  const actionProps = formAction
+    ? { formAction }
+    : { name, value };
+
   return (
     <button
       className={className}
-      formAction={formAction}
-      name={name}
-      value={value}
+      {...actionProps}
       aria-label={label}
       onClick={(event) => {
         if (!window.confirm(confirmation)) {

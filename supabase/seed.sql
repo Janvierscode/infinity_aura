@@ -51,13 +51,14 @@ on conflict (slug) do update set
   sort_order = excluded.sort_order;
 
 insert into public.business_ideas (
-  title, slug, summary, body_markdown, category_id, investment, launch_time,
+  title, slug, summary, preview_markdown, body_markdown, category_id, investment, launch_time,
   status, is_featured, published_at
 )
 select
   'Mobile Bookkeeping for Informal Traders',
   'mobile-bookkeeping-for-informal-traders',
   'Help small traders track daily sales, expenses, and stock through a simple mobile-first bookkeeping service.',
+  '## Why this is worth exploring\n\nInformal traders often know cash is moving without knowing which products are profitable. This preview explains the customer, the starting offer, and what to validate before investing.',
   '## The opportunity\n\nMany informal traders know whether cash is moving, but not which products are profitable or where money is being lost. A lightweight bookkeeping service can turn daily records into useful decisions.\n\n## How to start\n\n1. Interview ten traders about how they currently record transactions.\n2. Create a simple mobile workflow using forms and spreadsheets.\n3. Charge a small monthly fee for setup, weekly summaries, and support.\n\n## What will matter\n\nTrust, simplicity, local language support, and consistent follow-up will matter more than sophisticated software at the beginning.',
   category.id,
   'low',
@@ -70,6 +71,7 @@ where category.slug = 'low-cost'
 on conflict (slug) do update set
   title = excluded.title,
   summary = excluded.summary,
+  preview_markdown = excluded.preview_markdown,
   body_markdown = excluded.body_markdown,
   category_id = excluded.category_id,
   investment = excluded.investment,

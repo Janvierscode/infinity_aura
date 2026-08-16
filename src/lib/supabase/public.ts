@@ -16,7 +16,7 @@ export function createPublicClient() {
     },
     global: {
       fetch: (input, init) => {
-        const timeout = AbortSignal.timeout(6000);
+        const timeout = AbortSignal.timeout(20000);
         const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
         return fetch(input, { ...init, signal });
       },

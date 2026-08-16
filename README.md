@@ -1,26 +1,17 @@
 # Infinity Aura Technologies
 
-**Innovate. Build. Empower.**
+Infinity Aura is a Next.js and Supabase platform for publishing practical business ideas, operating a small corporate website, and managing incoming leads. Public pages support light, dark, and system themes. The administrator area remains light-only.
 
-A focused corporate website, Business Ideas community, and private lead CRM.
+## Product Areas
 
-## Platform
-
-- Next.js 16 App Router, React 19, strict TypeScript, and Geist typography
-- Public Home, About, Services, Business Ideas, Contact, Privacy, and Terms routes
-- Light, futuristic Dark, and System-aware public themes
-- Supabase-backed services, business ideas, categories, member profiles, comments, votes, media, leads, and settings
-- Google or email/password community accounts
-- Reversible upvotes and downvotes on ideas and comments
-- Sanitized Markdown idea publishing with investment and launch-time details
-- Private single-administrator CRM protected by password authentication and mandatory TOTP MFA
-- Secure contact persistence through a validated anonymous Supabase RPC
-
-The CRM contains Overview, Ideas, Services, Leads, Media, and Settings. Ideas include comment moderation. Retired Phase 2 systems and the former Blog model are not part of the application.
+- **Business ideas:** Public summaries and administrator-written previews are visible to everyone. Complete guides, comments, and voting require a free member account.
+- **Corporate site:** Home, About, Services, Contact, Privacy, and Terms.
+- **Admin:** Ideas, categories, services, leads, media, and company settings. The sole administrator must pass TOTP MFA at AAL2.
+- **Members:** Email/password and optionally Google authentication, profile display-name management, password recovery, comments, and idea/comment votes.
 
 ## Local Setup
 
-Requirements: Node.js 22 or later, npm, Docker Desktop, and network access for the first Supabase image download.
+Requirements are Node.js 22 or newer, Docker Desktop, and Supabase CLI.
 
 ```bash
 npm install
@@ -30,59 +21,70 @@ npm run supabase:reset
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Supabase Studio is available at [http://localhost:54323](http://localhost:54323).
+Required browser-safe environment variables:
 
-## Environment
-
-```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false
 ```
 
-No service-role key is required by the application. Never store passwords, recovery links, OAuth secrets, access tokens, or MFA secrets in the repository.
+Never expose a Supabase secret or service-role key through a `NEXT_PUBLIC_` variable.
 
-## Business Ideas
+## Publishing Ideas
 
-Ideas are written in Markdown at `/admin/ideas`. Each idea has one category, an investment level, optional launch-time guidance, and an optional cover image. Draft and archived ideas are protected by row-level security.
+Each idea contains two distinct Markdown documents:
 
-Visitors can read published ideas and visible comments. Signed-in members can hold one reversible vote on each idea and comment, post flat comments, delete their own comments, and sign out. Individual vote records are private; only aggregate totals are public.
+- **Public preview:** A useful introduction shown to visitors and search engines.
+- **Member guide:** The complete guide, retrieved only after Supabase validates a signed-in member.
 
-The administrator can publish or delete ideas, manage categories, and hide, restore, or permanently delete comments.
+The full guide must never be copied into the public preview merely to create a visual blur. Anonymous database permissions deliberately exclude `body_markdown`, comments, and member profiles.
 
-## Community Auth
+In Admin, open **Ideas**, select **New idea**, complete both Markdown fields, assign one category, and save a draft or publish. Publishing and deletion invalidate the homepage, idea library, detail route, and sitemap caches.
 
-Email/password sign-up uses a 12-character minimum and email confirmation. Google sign-in requires the Google provider to be enabled in Supabase Auth with its client ID and secret. All production domains must be listed as authorized callback origins in Google Cloud and as redirect URLs in Supabase.
+## Authentication
 
-Public member sessions do not grant CRM access. The CRM additionally requires the singleton `private.app_admin` binding and an AAL2 session established through TOTP.
+Email/password registration and recovery work through Supabase Auth. Account and authentication routes are excluded from search indexing.
 
-## Leads
+To enable Google:
 
-The contact form validates submissions and stores them in `contact_enquiries` through `submit_contact_enquiry`. Leads can be searched, filtered, updated, privately annotated, replied to, and permanently deleted.
+1. Create a Google OAuth Web client.
+2. Add `https://nuxbdncbbtmnpycwlcow.supabase.co/auth/v1/callback` as the authorized redirect URI.
+3. Add `https://www.infinityaura.tech` as an authorized JavaScript origin.
+4. Configure the client ID and secret in Supabase Auth Providers.
+5. Set the Supabase Site URL to `https://www.infinityaura.tech` and allow `/auth/callback` for production, controlled previews, and localhost development.
+6. Set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` only after the provider is working.
 
-Email notification delivery remains intentionally unconfigured. A saved lead still appears in the CRM with **Not configured** as its notification state.
+Google secrets belong in Google Cloud and Supabase, never in this repository or Vercel browser-visible variables.
 
-## Themes
+## Lead Management
 
-The public platform defaults to **System** and stores the browser-local preference under `infinity-aura-theme`. Light uses the minimal corporate presentation. Dark uses the branded navy, cyan, orbit, code-window, and glass visual language. The CRM remains light-only.
+Contact submissions are validated and stored privately in `contact_enquiries`. The admin can search, update, reply to, annotate, and delete leads. Transactional email notification delivery remains intentionally unconfigured and appears as **Not configured** in lead details.
 
-## Verification
+## Quality Checks
 
 ```bash
 npm run typecheck
 npm run lint
 npm test
 npm run build
+PLAYWRIGHT_PORT=3100 npm run test:e2e
 npx supabase test db
-npm run test:e2e
 ```
 
-## Production
+The database suite verifies published-content access, member-only content, lead privacy, administrator authorization, and AAL2 enforcement.
 
-Primary deployment: [infinity-aura-technologies.vercel.app](https://infinity-aura-technologies.vercel.app)
+## Production Rollout
 
-Intended custom domain: [www.infinityaura.tech](https://www.infinityaura.tech)
+Production runs on Vercel in `lhr1` near the Supabase EU West project. Configure `NEXT_PUBLIC_SITE_URL=https://www.infinityaura.tech`; production builds reject a missing or localhost canonical URL.
 
-## License
+The Phase 3.1 database rollout is deliberately ordered:
 
-Copyright (c) 2026 Infinity Aura Technologies. All rights reserved.
+1. Export and validate a gitignored backup.
+2. Apply the additive preview migration.
+3. Deploy and verify the compatible application.
+4. Apply the member-content protection migration.
+5. Verify anonymous denial, authenticated access, route health, sitemap output, and runtime logs.
+
+Do not apply the protection migration to an older application build because that build still requests anonymous full-row idea data.
