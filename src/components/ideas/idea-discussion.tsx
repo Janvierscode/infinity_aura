@@ -123,7 +123,7 @@ export function IdeaDiscussion({ idea }: { idea: BusinessIdeaWithRelations }) {
   const { content, userId } = member;
   return (
     <>
-      <section className="container idea-body member-idea-body" id="member-content"><span className="section-label">Complete member guide</span><MarkdownContent markdown={content.body_markdown} /></section>
+      <section className="container idea-body member-idea-body" id="member-content"><MarkdownContent markdown={content.body_markdown} /></section>
       <section className="container idea-discussion" id="discussion">
         <div className="idea-voting-panel">
           <div><span className="section-label">Community verdict</span><h2>Would you consider starting this business?</h2><p>Vote on the opportunity, then share practical context that helps other founders.</p></div>
