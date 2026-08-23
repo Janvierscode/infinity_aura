@@ -117,7 +117,7 @@ npm run test:e2e   # Playwright desktop and mobile tests
 
 ### Prerequisites
 
-- Node.js 22 or newer
+- Node.js 24
 - npm
 - Docker Desktop or another Docker-compatible runtime for local Supabase
 
