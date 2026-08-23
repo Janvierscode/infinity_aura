@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
-import { getBusinessIdeas, getServices } from "@/lib/content";
+import { getPublishedIdeaSlugs, getServices } from "@/lib/content";
 import { siteUrl } from "@/lib/env";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [services, ideas] = await Promise.all([getServices(), getBusinessIdeas()]);
+  const [services, ideas] = await Promise.all([getServices(), getPublishedIdeaSlugs()]);
   const pages = ["", "/about", "/services", "/ideas", "/contact", "/privacy", "/terms"].map((path) => ({
     url: `${siteUrl}${path}`,
     changeFrequency: path === "" || path === "/ideas" ? "weekly" as const : "monthly" as const,

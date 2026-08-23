@@ -3,6 +3,7 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import { hasSupabaseEnv } from "@/lib/env";
 import { createPublicClient } from "@/lib/supabase/public";
 import type {
+  BusinessIdeaCard,
   BusinessIdeaWithRelations,
   IdeaCategoryRow,
   ServiceRow,
@@ -25,7 +26,12 @@ type PublicService = Pick<
 >;
 
 const serviceFields = "id,slug,title,summary,body,icon_key,hero_media_id,is_featured,sort_order,meta_title,meta_description";
-const ideaFields = "id,title,slug,summary,preview_markdown,category_id,cover_media_id,investment,launch_time,status,is_featured,upvote_count,downvote_count,vote_score,comment_count,meta_title,meta_description,published_at,created_at,updated_at,category:idea_categories(id,name,slug),cover:media_assets(id,public_url,alt_text,width,height)";
+const ideaRelations = "category:idea_categories(id,name,slug),cover:media_assets(id,public_url,alt_text,width,height)";
+const ideaCardFields = `id,title,slug,summary,category_id,cover_media_id,investment,launch_time,is_featured,upvote_count,downvote_count,vote_score,comment_count,published_at,${ideaRelations}`;
+const ideaDetailFields = `${ideaCardFields},preview_markdown,meta_title,meta_description,created_at,updated_at`;
+
+export type IdeaSort = "newest" | "top";
+export type BusinessIdeaPage = { items: BusinessIdeaCard[]; page: number; pageSize: number; total: number; totalPages: number };
 
 export const fallbackServices: PublicService[] = [
   { id: "service-1", slug: "custom-software-development", title: "Custom Software Development", summary: "Purpose-built systems shaped around your workflows, people, and growth goals.", body: "We design and engineer secure, maintainable software that turns complex operating needs into dependable digital products.", icon_key: "code-2", hero_media_id: null, is_featured: true, sort_order: 10, meta_title: null, meta_description: null },
@@ -73,16 +79,39 @@ export const getIdeaCategories = unstable_cache(async (): Promise<IdeaCategoryRo
   return data ?? [];
 }, [CACHE_TAGS.categories], { tags: [CACHE_TAGS.categories], revalidate: 3600 });
 
-export const getBusinessIdeas = unstable_cache(async (): Promise<BusinessIdeaWithRelations[]> => {
+export const getLatestBusinessIdeas = unstable_cache(async (limit = 3): Promise<BusinessIdeaCard[]> => {
   if (!hasSupabaseEnv()) return [];
-  const { data, error } = await createPublicClient().from("business_ideas").select(ideaFields).eq("status", "published").lte("published_at", new Date().toISOString()).order("published_at", { ascending: false });
+  const { data, error } = await createPublicClient().from("business_ideas").select(ideaCardFields).eq("status", "published").lte("published_at", new Date().toISOString()).order("is_featured", { ascending: false }).order("published_at", { ascending: false }).limit(Math.min(Math.max(limit, 1), 12));
   if (error) throw new Error(`Unable to load business ideas: ${error.message}`);
-  return (data ?? []) as unknown as BusinessIdeaWithRelations[];
-}, [CACHE_TAGS.ideas], { tags: [CACHE_TAGS.ideas], revalidate: 300 });
+  return (data ?? []) as unknown as BusinessIdeaCard[];
+}, ["latest-public-business-ideas"], { tags: [CACHE_TAGS.ideas], revalidate: 300 });
+
+export const getBusinessIdeaPage = unstable_cache(async (categoryId: string | null, sort: IdeaSort, requestedPage: number, pageSize = 9): Promise<BusinessIdeaPage> => {
+  const page = Math.max(1, requestedPage);
+  const safePageSize = Math.min(Math.max(pageSize, 1), 24);
+  if (!hasSupabaseEnv()) return { items: [], page, pageSize: safePageSize, total: 0, totalPages: 0 };
+
+  let query = createPublicClient().from("business_ideas").select(ideaCardFields, { count: "exact" }).eq("status", "published").lte("published_at", new Date().toISOString());
+  if (categoryId) query = query.eq("category_id", categoryId);
+  query = query.order("is_featured", { ascending: false });
+  query = sort === "top" ? query.order("vote_score", { ascending: false }).order("published_at", { ascending: false }) : query.order("published_at", { ascending: false });
+  const from = (page - 1) * safePageSize;
+  const { data, error, count } = await query.range(from, from + safePageSize - 1);
+  if (error) throw new Error(`Unable to load business ideas: ${error.message}`);
+  const total = count ?? 0;
+  return { items: (data ?? []) as unknown as BusinessIdeaCard[], page, pageSize: safePageSize, total, totalPages: Math.ceil(total / safePageSize) };
+}, ["paginated-public-business-ideas"], { tags: [CACHE_TAGS.ideas], revalidate: 300 });
+
+export const getPublishedIdeaSlugs = unstable_cache(async (): Promise<Array<{ slug: string; updated_at: string }>> => {
+  if (!hasSupabaseEnv()) return [];
+  const { data, error } = await createPublicClient().from("business_ideas").select("slug,updated_at").eq("status", "published").lte("published_at", new Date().toISOString()).order("published_at", { ascending: false });
+  if (error) throw new Error(`Unable to load business idea URLs: ${error.message}`);
+  return data ?? [];
+}, ["published-business-idea-slugs"], { tags: [CACHE_TAGS.ideas], revalidate: 300 });
 
 export const getBusinessIdea = unstable_cache(async (slug: string): Promise<BusinessIdeaWithRelations | null> => {
   if (!hasSupabaseEnv()) return null;
-  const { data, error } = await createPublicClient().from("business_ideas").select(ideaFields).eq("status", "published").lte("published_at", new Date().toISOString()).eq("slug", slug).maybeSingle();
+  const { data, error } = await createPublicClient().from("business_ideas").select(ideaDetailFields).eq("status", "published").lte("published_at", new Date().toISOString()).eq("slug", slug).maybeSingle();
   if (error) throw new Error(`Unable to load business idea: ${error.message}`);
   return data as unknown as BusinessIdeaWithRelations | null;
 }, ["public-business-idea"], { tags: [CACHE_TAGS.ideas], revalidate: 300 });

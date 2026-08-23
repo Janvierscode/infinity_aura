@@ -104,6 +104,22 @@ test("business idea filtering handles an invalid category", async ({ page }) => 
   await expect(page.getByRole("link", { name: "View all ideas" })).toBeVisible();
 });
 
+test("business ideas display loaded cover images in catalogue and detail views", async ({ page }) => {
+  await page.goto("/ideas");
+  const cards = page.locator(".idea-card");
+  await expect(cards.first()).toBeVisible();
+  await expect(cards.locator(".public-media img")).toHaveCount(await cards.count());
+  for (const image of await cards.locator(".public-media img").all()) {
+    await expect(image).toBeVisible();
+    await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+  }
+
+  await page.goto("/ideas/cleanflow-lite");
+  const cover = page.locator(".idea-detail-hero .public-media img");
+  await expect(cover).toBeVisible();
+  await expect.poll(() => cover.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
+});
+
 test("retired blog routes permanently redirect to business ideas", async ({ request }) => {
   const index = await request.get("/blog", { maxRedirects: 0 });
   expect(index.status()).toBe(308);

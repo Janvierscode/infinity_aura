@@ -82,10 +82,33 @@ export type PublicBusinessIdea = Omit<
   "body_markdown" | "updated_by"
 >;
 
-export type BusinessIdeaWithRelations = PublicBusinessIdea & {
+export type PublicMediaAsset = Pick<MediaAssetRow, "id" | "public_url" | "alt_text" | "width" | "height">;
+
+export type BusinessIdeaCard = Pick<
+  PublicBusinessIdea,
+  | "id"
+  | "title"
+  | "slug"
+  | "summary"
+  | "category_id"
+  | "cover_media_id"
+  | "investment"
+  | "launch_time"
+  | "is_featured"
+  | "upvote_count"
+  | "downvote_count"
+  | "vote_score"
+  | "comment_count"
+  | "published_at"
+> & {
   category: Pick<IdeaCategoryRow, "id" | "name" | "slug"> | null;
-  cover: Pick<MediaAssetRow, "id" | "public_url" | "alt_text" | "width" | "height"> | null;
+  cover: PublicMediaAsset | null;
 };
+
+export type BusinessIdeaWithRelations = BusinessIdeaCard & Pick<
+  PublicBusinessIdea,
+  "preview_markdown" | "meta_title" | "meta_description" | "created_at" | "updated_at"
+>;
 
 export type ProfileRow = {
   id: string;

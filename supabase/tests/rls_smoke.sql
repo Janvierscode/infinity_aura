@@ -1,6 +1,6 @@
 begin;
 
-select plan(32);
+select plan(33);
 
 select has_table('public', 'idea_categories', 'idea categories table exists');
 select has_table('public', 'business_ideas', 'business ideas table exists');
@@ -9,6 +9,16 @@ select has_table('public', 'idea_comments', 'idea comments table exists');
 select has_table('public', 'idea_votes', 'idea votes table exists');
 select has_table('public', 'comment_votes', 'comment votes table exists');
 select has_column('public', 'business_ideas', 'preview_markdown', 'business ideas have a public preview');
+select ok(
+  exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.business_ideas'::regclass
+      and conname = 'business_ideas_published_cover_check'
+      and contype = 'c'
+  ),
+  'published business ideas require a cover image'
+);
 select has_table('public', 'services', 'services table remains');
 select has_table('public', 'contact_enquiries', 'leads table remains private');
 select has_function('public', 'submit_contact_enquiry', array['text', 'text', 'text', 'text', 'text', 'text', 'text'], 'public lead submission function exists');

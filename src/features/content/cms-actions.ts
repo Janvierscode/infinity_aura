@@ -11,11 +11,12 @@ import { ideaPreviewSchema } from "@/lib/validation/idea";
 const optionalUuid = z.string().uuid().optional().or(z.literal(""));
 const slug = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
-export type CmsActionState = { status?: "error"; message?: string };
+export type CmsActionState = { status?: "error" | "success"; message?: string };
 
 export async function saveBusinessIdea(_: CmsActionState, formData: FormData): Promise<CmsActionState> {
   const parsed = z.object({ id: optionalUuid, title: z.string().trim().min(2).max(160), slug, summary: z.string().trim().min(20).max(320), previewMarkdown: ideaPreviewSchema, bodyMarkdown: z.string().trim().min(20).max(100000), categoryId: z.string().uuid(), coverMediaId: optionalUuid, investment: z.enum(["low", "moderate", "high"]), launchTime: z.string().trim().max(80), featured: z.string().optional(), metaTitle: z.string().trim().max(160), metaDescription: z.string().trim().max(320), intent: z.enum(["draft", "published", "archived"]) }).safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Review the business idea fields and try again." };
+  if (parsed.data.intent === "published" && !parsed.data.coverMediaId) return { status: "error", message: "Choose a cover image before publishing this business idea." };
   const { supabase, userId } = await requireAdmin();
   const existing = parsed.data.id ? await supabase.from("business_ideas").select("published_at").eq("id", parsed.data.id).maybeSingle() : null;
   const payload = { title: parsed.data.title, slug: parsed.data.slug, summary: parsed.data.summary, preview_markdown: parsed.data.previewMarkdown, body_markdown: parsed.data.bodyMarkdown, category_id: parsed.data.categoryId, cover_media_id: parsed.data.coverMediaId || null, investment: parsed.data.investment, launch_time: parsed.data.launchTime || null, is_featured: parsed.data.featured === "on", meta_title: parsed.data.metaTitle || null, meta_description: parsed.data.metaDescription || null, status: parsed.data.intent, published_at: parsed.data.intent === "published" ? existing?.data?.published_at ?? new Date().toISOString() : null, updated_by: userId } as const;
@@ -63,13 +64,13 @@ export async function deleteCategory(formData: FormData) {
   revalidatePath("/ideas"); revalidatePath("/admin/ideas");
 }
 
-export async function uploadMedia(formData: FormData) {
+export async function uploadMedia(_: CmsActionState, formData: FormData): Promise<CmsActionState> {
   const file = formData.get("file");
-  const altText = z.string().trim().max(240).parse(formData.get("altText") ?? "");
-  const caption = z.string().trim().max(500).parse(formData.get("caption") ?? "");
-  if (!(file instanceof File) || file.size === 0) throw new Error("Choose an image to upload.");
+  const metadata = z.object({ altText: z.string().trim().max(240), caption: z.string().trim().max(500) }).safeParse(Object.fromEntries(formData.entries()));
+  if (!metadata.success) return { status: "error", message: metadata.error.issues[0]?.message ?? "Review the image details and try again." };
+  if (!(file instanceof File) || file.size === 0) return { status: "error", message: "Choose an image to upload." };
   const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
-  if (!allowed.has(file.type) || file.size > 10 * 1024 * 1024) throw new Error("Upload a JPG, PNG, WebP, or AVIF image no larger than 10 MB.");
+  if (!allowed.has(file.type) || file.size > 10 * 1024 * 1024) return { status: "error", message: "Upload a JPG, PNG, WebP, or AVIF image no larger than 10 MB." };
 
   let processed: { data: Buffer; width: number; height: number };
   try {
@@ -80,17 +81,18 @@ export async function uploadMedia(formData: FormData) {
       .toBuffer({ resolveWithObject: true });
     processed = { data, width: info.width, height: info.height };
   } catch {
-    throw new Error("This image could not be processed. Try exporting it again as JPG, PNG, WebP, or AVIF.");
+    return { status: "error", message: "This image could not be processed. Try exporting it again as JPG, PNG, WebP, or AVIF." };
   }
 
   const { supabase, userId } = await requireAdmin();
   const objectPath = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.webp`;
   const upload = await supabase.storage.from("public-media").upload(objectPath, processed.data, { cacheControl: "31536000", contentType: "image/webp", upsert: false });
-  if (upload.error) throw new Error(upload.error.message);
+  if (upload.error) return { status: "error", message: `The image could not be uploaded: ${upload.error.message}` };
   const publicUrl = supabase.storage.from("public-media").getPublicUrl(objectPath).data.publicUrl;
-  const created = await supabase.from("media_assets").insert({ bucket: "public-media", object_path: objectPath, public_url: publicUrl, original_filename: file.name, mime_type: "image/webp", size_bytes: processed.data.byteLength, width: processed.width, height: processed.height, alt_text: altText || null, caption: caption || null, uploaded_by: userId }).select("id").single();
-  if (created.error) { await supabase.storage.from("public-media").remove([objectPath]); throw new Error(created.error.message); }
+  const created = await supabase.from("media_assets").insert({ bucket: "public-media", object_path: objectPath, public_url: publicUrl, original_filename: file.name, mime_type: "image/webp", size_bytes: processed.data.byteLength, width: processed.width, height: processed.height, alt_text: metadata.data.altText || null, caption: metadata.data.caption || null, uploaded_by: userId }).select("id").single();
+  if (created.error) { await supabase.storage.from("public-media").remove([objectPath]); return { status: "error", message: `The media record could not be created: ${created.error.message}` }; }
   revalidatePath("/admin/media");
+  return { status: "success", message: `${file.name} was optimized and added to the media library.` };
 }
 
 export async function updateMedia(formData: FormData) {

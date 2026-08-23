@@ -22,6 +22,7 @@ This project demonstrates my ability to take a product from concept to deploymen
 
 - Responsive corporate website with Home, About, Services, Business Ideas, Contact, Privacy, and Terms pages
 - Curated business idea catalogue with category filtering and newest/top-voted sorting
+- Image-first idea cards and detail views with responsive covers, accessible fallbacks, and paginated data loading
 - Public idea previews with complete guides reserved for signed-in members
 - Dynamic service and idea detail pages backed by Supabase content
 - Accessible mobile navigation and persistent Light, Dark, and System themes
@@ -41,11 +42,11 @@ This project demonstrates my ability to take a product from concept to deploymen
 ### Secure administration
 
 - Protected dashboard for ideas, categories, services, leads, media, and site settings
-- Draft/published content workflows and scheduled publishing dates
+- Draft, published, and archived content workflows with cover images required before publication
 - Markdown editors with live previews for public and member-only content
 - Comment moderation with hide, restore, and permanent-delete actions
 - Lightweight CRM with lead statuses, private notes, and direct email follow-up
-- Supabase Storage media library with type/size restrictions and reference-safe deletion
+- Supabase Storage media library with automatic WebP optimization, accessible metadata, clear upload feedback, and reference-safe deletion
 - Singleton administrator authorization with mandatory TOTP multi-factor authentication
 
 ## Engineering skills demonstrated

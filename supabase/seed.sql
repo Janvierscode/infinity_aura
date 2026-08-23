@@ -50,8 +50,39 @@ on conflict (slug) do update set
   description = excluded.description,
   sort_order = excluded.sort_order;
 
+-- Local publishing fixtures use a real media record so development follows the
+-- same cover-image requirement as production.
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+)
+values (
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated', 'seed-media@local.invalid', '', now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"display_name":"Local seed"}'::jsonb,
+  now(), now()
+)
+on conflict (id) do nothing;
+
+insert into public.media_assets (
+  id, bucket, object_path, public_url, original_filename, mime_type,
+  size_bytes, width, height, alt_text, uploaded_by
+)
+values (
+  '00000000-0000-0000-0000-000000000002', 'public-media',
+  'seed/mobile-bookkeeping-cover.png', '/homepage.png', 'homepage.png',
+  'image/png', 2257990, 3360, 2100,
+  'Infinity Aura Technologies platform displayed on a desktop screen',
+  '00000000-0000-0000-0000-000000000001'
+)
+on conflict (id) do update set
+  public_url = excluded.public_url,
+  alt_text = excluded.alt_text;
+
 insert into public.business_ideas (
-  title, slug, summary, preview_markdown, body_markdown, category_id, investment, launch_time,
+  title, slug, summary, preview_markdown, body_markdown, category_id, cover_media_id, investment, launch_time,
   status, is_featured, published_at
 )
 select
@@ -61,6 +92,7 @@ select
   '## Why this is worth exploring\n\nInformal traders often know cash is moving without knowing which products are profitable. This preview explains the customer, the starting offer, and what to validate before investing.',
   '## The opportunity\n\nMany informal traders know whether cash is moving, but not which products are profitable or where money is being lost. A lightweight bookkeeping service can turn daily records into useful decisions.\n\n## How to start\n\n1. Interview ten traders about how they currently record transactions.\n2. Create a simple mobile workflow using forms and spreadsheets.\n3. Charge a small monthly fee for setup, weekly summaries, and support.\n\n## What will matter\n\nTrust, simplicity, local language support, and consistent follow-up will matter more than sophisticated software at the beginning.',
   category.id,
+  '00000000-0000-0000-0000-000000000002',
   'low',
   '2-4 weeks',
   'published',
@@ -74,6 +106,7 @@ on conflict (slug) do update set
   preview_markdown = excluded.preview_markdown,
   body_markdown = excluded.body_markdown,
   category_id = excluded.category_id,
+  cover_media_id = excluded.cover_media_id,
   investment = excluded.investment,
   launch_time = excluded.launch_time,
   status = excluded.status,

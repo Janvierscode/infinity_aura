@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { MarkdownContent } from "@/components/ideas/markdown-content";
+import { PublicMedia } from "@/components/media/public-media";
 import type { CmsActionState } from "@/features/content/cms-actions";
 import { slugify } from "@/lib/ideas";
 import type { BusinessIdeaRow, IdeaCategoryRow, MediaAssetRow } from "@/types/database";
@@ -20,6 +21,8 @@ export function IdeaEditor({ record, categories, media, action }: IdeaEditorProp
   const [slugEdited, setSlugEdited] = useState(Boolean(record?.slug));
   const [publicPreview, setPublicPreview] = useState(record?.preview_markdown ?? record?.summary ?? "");
   const [markdown, setMarkdown] = useState(record?.body_markdown ?? "");
+  const [coverMediaId, setCoverMediaId] = useState(record?.cover_media_id ?? "");
+  const selectedCover = media.find((item) => item.id === coverMediaId);
 
   return (
     <form className="idea-editor" action={formAction}>
@@ -33,7 +36,8 @@ export function IdeaEditor({ record, categories, media, action }: IdeaEditorProp
           <label className="field-wide"><span>Summary</span><textarea name="summary" rows={3} minLength={20} maxLength={320} defaultValue={record?.summary ?? ""} required /></label>
           <label><span>Starting investment</span><select name="investment" defaultValue={record?.investment ?? "low"}><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option></select></label>
           <label><span>Estimated launch time</span><input name="launchTime" maxLength={80} defaultValue={record?.launch_time ?? ""} placeholder="Example: 2-4 weeks" /></label>
-          <label><span>Cover image</span><select name="coverMediaId" defaultValue={record?.cover_media_id ?? ""}><option value="">No cover image</option>{media.map((item) => <option key={item.id} value={item.id}>{item.original_filename}</option>)}</select></label>
+          <label className="field-wide cover-picker"><span>Cover image</span><select name="coverMediaId" value={coverMediaId} onChange={(event) => setCoverMediaId(event.target.value)}><option value="">Choose an image before publishing</option>{media.map((item) => <option key={item.id} value={item.id}>{item.original_filename}</option>)}</select><small>Drafts may be saved without a cover. Published ideas must have one.</small></label>
+          <div className="field-wide selected-cover-preview"><PublicMedia media={selectedCover} alt={selectedCover?.alt_text || title || "Selected idea cover"} sizes="(max-width: 760px) 100vw, 760px" /><div><strong>{selectedCover?.original_filename ?? "No cover selected"}</strong><span>{selectedCover ? selectedCover.alt_text || "Add alternative text in the media library." : "Choose an image to preview how the idea will appear publicly."}</span></div></div>
           <label className="checkbox-field"><input name="featured" type="checkbox" defaultChecked={record?.is_featured ?? false} /><span>Feature this idea</span></label>
           <label className="field-wide"><span>SEO title</span><input name="metaTitle" maxLength={160} defaultValue={record?.meta_title ?? ""} /></label>
           <label className="field-wide"><span>SEO description</span><textarea name="metaDescription" rows={2} maxLength={320} defaultValue={record?.meta_description ?? ""} /></label>
